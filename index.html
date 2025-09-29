@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-size="normal">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Division Steps Game — Multilingual + Themes</title>
+<style>
+  /* ---------- THEME TOKENS ---------- */
+  :root{
+    --bg:#0f172a; --panel:#0c1222; --ink:#e5e7eb; --muted:#9ca3af;
+    --accent:#22c55e; --accent-2:#60a5fa; --warn:#f59e0b; --error:#ef4444;
+    --card:#142038; --stroke:#22304a; --btn-ink:#082b1f;
+    --focus: 0 0 0 3px rgba(96,165,250,.4), 0 0 0 6px rgba(96,165,250,.15);
+  }
+  html[data-theme="light"]{
+    --bg:#f8fafc; --panel:#ffffff; --ink:#0f172a; --muted:#475569;
+    --accent:#16a34a; --accent-2:#2563eb; --warn:#d97706; --error:#dc2626;
+    --card:#f1f5f9; --stroke:#d1d5db; --btn-ink:#052e1a;
+    --focus: 0 0 0 3px rgba(37,99,235,.35), 0 0 0 6px rgba(37,99,235,.15);
+  }
+
+  /* ---------- BASE ---------- */
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:linear-gradient(145deg,var(--bg),#0a1021);
+    color:var(--ink); font-family: ui-rounded, system-ui, -apple-system, Segoe UI,
+      Roboto, Noto Sans, "Helvetica Neue", Arial, "Segoe UI Emoji", "Noto Color Emoji");
+    transition: background .25s ease, color .25s ease;
+  }
+  html[data-theme="light"] body{
+    background: linear-gradient(145deg,#eef2ff,#ffffff);
+  }
+
+  /* ---------- HEADER ---------- */
+  header{
+    position:sticky; top:0; z-index:10;
+    padding:12px 14px; display:flex; gap:12px; align-items:center; justify-content:space-between;
+    border-bottom:1px solid var(--stroke); backdrop-filter: blur(6px);
+    background:color-mix(in oklab, var(--panel) 80%, transparent);
+  }
+  h1{ font-size:18px; margin:0; letter-spacing:.2px }
+  .sub{ color:var(--muted); font-size:12px }
+  .hud{ display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+
+  .badge{
+    background:color-mix(in oklab, var(--panel) 70%, transparent);
+    border:1px solid var(--stroke); padding:6px 10px; border-radius:999px; font-size:12px
+  }
+  .btn{
+    background:linear-gradient(180deg,#334155,#1f2937); border:1px solid #2a3746;
+    color:#e5e7eb; padding:10px 14px; border-radius:10px; cursor:pointer;
+    transition:transform .05s ease, box-shadow .2s ease; font-weight:700; font-size:14px
+  }
+  html[data-theme="light"] .btn{ background:linear-gradient(180deg,#e5e7eb,#cbd5e1); color:#0f172a; border-color:#cbd5e1 }
+  .btn:hover{ box-shadow:0 6px 18px rgba(0,0,0,.2) }
+  .btn:active{ transform:translateY(1px) scale(.99) }
+  .btn.primary{ background:linear-gradient(180deg,#34d399,#059669); border-color:#059669; color:var(--btn-ink) }
+  .btn.ghost{ background:transparent; border:1px dashed #445; color:var(--muted) }
+  .switch{
+    display:inline-flex; gap:8px; align-items:center; border:1px solid var(--stroke);
+    padding:6px 10px; border-radius:999px; background:color-mix(in oklab, var(--panel) 70%, transparent);
+    font-size:12px
+  }
+  .switch select{
+    border:1px solid var(--stroke); border-radius:999px; padding:6px 10px; background:var(--panel); color:var(--ink); font-size:14px
+  }
+  .switch input[type="checkbox"]{ width:1.2em; height:1.2em; accent-color: var(--accent) }
+
+  /* ---------- LAYOUT ---------- */
+  main{ max-width:1200px; margin:12px auto 70px; padding:0 12px }
+  .grid{ display:grid; gap:12px; grid-template-columns: repeat(12, 1fr); grid-auto-rows: minmax(160px, auto); }
+  .panel{
+    grid-column: span 4;
+    background:linear-gradient(180deg,var(--panel),color-mix(in oklab, var(--panel) 92%, transparent));
+    border:1px solid var(--stroke); border-radius:16px; padding:10px; position:relative; overflow:hidden
+  }
+  .panel h2{ margin:2px 0 6px; font-size:16px }
+  .panel .desc{ color:var(--muted); font-size:13px; margin-bottom:6px }
+
+  /* tablet */
+  @media (max-width: 1100px){ .panel{ grid-column: span 6 } }
+  /* phones */
+  @media (max-width: 430px){
+    header{ padding:10px 12px }
+    h1{ font-size:16px }
+    .sub{ display:none }
+    .hud{ gap:6px }
+    .badge{ padding:5px 8px; font-size:11px }
+    .btn{ padding:9px 12px; font-size:14px }
+    main{ margin:10px auto 60px; padding:0 10px }
+    .panel{ grid-column: span 12; padding:10px }
+    .panel h2{ font-size:15px }
+  }
+
+  .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+  .board{
+    background:color-mix(in oklab, var(--panel) 75%, transparent);
+    border:1px dashed var(--stroke); border-radius:14px;
+    min-height:96px; padding:8px; display:flex; flex-wrap:wrap; gap:6px; align-items:flex-start
+  }
+  .token{
+    user-select:none; padding:6px 10px; border-radius:10px;
+    background:linear-gradient(180deg,#243041,#1b2433);
+    border:1px solid #2c3a4e; display:inline-flex; gap:6px; align-items:center; cursor:grab; font-weight:800
+  }
+  html[data-theme="light"] .token{ background:linear-gradient(180deg,#e2e8f0,#cbd5e1); border-color:#94a3b8; color:#0f172a }
+  .token span{ font-size:18px } .token small{ color:var(--muted); font-weight:700 }
+  .token.picked{ outline:2px solid var(--accent); transform:scale(1.02) ; box-shadow: var(--focus) }
+
+  .baskets{ display:grid; grid-template-columns: repeat(auto-fit, minmax(82px, 1fr)); gap:8px }
+  .basket{
+    background:var(--card); border:1px solid var(--stroke); border-radius:14px; min-height:110px; padding:8px;
+    display:flex; flex-direction:column; gap:6px; align-items:center; justify-content:flex-start
+  }
+  html[data-theme="light"] .basket{ background:#ffffff }
+  .basket .face{ font-size:26px }
+  .basket .count{ font-size:12px; color:var(--muted) }
+  .slot{ min-height:44px; display:flex; flex-wrap:wrap; gap:6px; justify-content:center }
+  .drop-target{ outline:2px dashed transparent; transition: outline-color .15s ease }
+  .drop-target.over{ outline-color: var(--accent) }
+
+  .math{
+    font-feature-settings:"tnum" 1, "lnum" 1; letter-spacing:.2px; font-weight:800;
+    background:linear-gradient(90deg,#93c5fd22,#a78bfa22); border:1px solid #94a3b8; padding:6px 10px; border-radius:10px;
+  }
+  input[type="number"], select{
+    width:92px; padding:8px 10px; border-radius:10px; border:1px solid #2a3a4e; background:var(--panel); color:var(--ink);
+    font-size:16px; outline:none
+  }
+  html[data-theme="light"] input[type="number"], html[data-theme="light"] select{ border-color:#cbd5e1 }
+  .card{ background:var(--card); border:1px solid var(--stroke); border-radius:14px; padding:8px }
+  html[data-theme="light"] .card{ background:#ffffff }
+  .mini{ display:flex; gap:6px; align-items:center; color:var(--muted); font-size:12px }
+  .hint{ color:var(--warn); font-size:13px; margin-top:6px }
+  .ok{ color:var(--accent) } .err{ color:var(--error) }
+  .check{ position:absolute; top:8px; right:10px; font-size:18px; opacity:.85 }
+  .check.done{ color:var(--accent) } .check.todo{ color:#324462 }
+
+  .note{ grid-column: span 12; background:linear-gradient(180deg,var(--panel),color-mix(in oklab, var(--panel) 92%, transparent)); border:1px solid var(--stroke); border-radius:14px; padding:10px }
+  textarea{
+    width:100%; min-height:90px; background:color-mix(in oklab, var(--panel) 80%, transparent); color:var(--ink);
+    border:1px solid var(--stroke); border-radius:12px; padding:10px; font-size:15px
+  }
+
+  canvas#confetti{ position:fixed; inset:0; pointer-events:none; z-index:100 }
+
+  /* ---------- BIGGER CONTROLS MODE ---------- */
+  html[data-size="big"] body{ font-size:18px }
+  html[data-size="big"] .panel h2{ font-size:18px }
+  html[data-size="big"] input[type="number"], html[data-size="big"] select{ font-size:18px; padding:10px 12px; width:110px }
+  html[data-size="big"] .btn{ font-size:16px; padding:12px 16px }
+  html[data-size="big"] .token span{ font-size:22px }
+  html[data-size="big"] .basket .face{ font-size:30px }
+  html[data-size="big"] .board{ min-height:110px }
+  html[data-size="big"] .slot{ min-height:54px }
+</style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+
+<header>
+  <div>
+    <h1 id="title">Division Steps Game</h1>
+    <div class="sub" id="subtitle">Story → Break apart → Actual division → Put together → Explain simply</div>
+  </div>
+  <div class="hud">
+    <div class="switch">
+      <span id="lblLang">Language</span>
+      <select id="lang">
+        <option value="en">EN</option>
+        <option value="kr">KR</option>
+      </select>
+    </div>
+    <div class="switch">
+      <span id="lblTheme">Theme</span>
+      <label><input id="themeToggle" type="checkbox" /> <span id="lblDark">Dark</span></label>
+    </div>
+    <div class="switch">
+      <span id="lblSize">Size</span>
+      <label><input id="sizeToggle" type="checkbox" /> <span id="lblBig">Bigger</span></label>
+    </div>
+    <div class="badge"><span id="lblProblem">Problem</span>: <span id="hudProblem">75 ÷ 3</span></div>
+    <div class="badge"><span id="lblScore">Score</span>: <span id="hudScore">0</span></div>
+    <button class="btn ghost" id="btnHint">Hints</button>
+    <button class="btn primary" id="btnNew">New Problem</button>
+  </div>
+</header>
+
+<main class="grid">
+  <!-- STEP 1 -->
+  <section class="panel" id="p1">
+    <div class="check todo" id="chk1">●</div>
+    <h2 id="s1_title">Step 1 · Think in a story</h2>
+    <div class="desc" id="s1_desc">
+      You have <b id="s1_candies">75</b> candies and <b id="s1_friends">3</b> friends. Move tokens so each friend gets the same total.
+      <span class="mini" id="tapHint">(Tap a token, then tap a basket on iPhone)</span>
+    </div>
+    <div class="card">
+      <div class="row" style="align-items:flex-start">
+        <div style="flex:1; min-width:220px; margin-right:8px">
+          <div class="mini" id="s1_board_label">🍬 Board (each token shows its candies)</div>
+          <div id="pool" class="board drop-target" aria-label="candies board"></div>
+        </div>
+        <div style="flex:1.1; min-width:240px">
+          <div class="mini" id="s1_baskets_label">👥 Friend baskets — make them equal</div>
+          <div id="baskets" class="baskets"></div>
+        </div>
+      </div>
+      <div id="msg1" class="hint"></div>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="panel" id="p2">
+    <div class="check todo" id="chk2">●</div>
+    <h2 id="s2_title">Step 2 · Break the number apart</h2>
+    <div class="desc" id="s2_desc">Write dividend as tens + ones (e.g., 75 = 70 + 5).</div>
+    <div class="row">
+      <div class="math">
+        <span id="s2_A">75</span> =
+        <input id="tens" type="number" inputmode="numeric" placeholder="tens" /> +
+        <input id="ones" type="number" inputmode="numeric" placeholder="ones" />
+      </div>
+      <button class="btn" id="btn2">Check</button>
+    </div>
+    <div id="msg2" class="hint"></div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="panel" id="p3">
+    <div class="check todo" id="chk3">●</div>
+    <h2 id="s3_title">Step 3 · Do the actual division</h2>
+    <div class="desc" id="s3_desc">Divide tens first. Carry the remainder to ones, then divide again.</div>
+
+    <div class="row" style="gap:10px; margin-bottom:6px">
+      <div class="math">
+        <span id="s3_tens">70</span> ÷ <span id="s3_d1">3</span> =
+        <input id="q1" type="number" inputmode="numeric" placeholder="q" style="width:84px"/> (r =
+        <input id="r1" type="number" inputmode="numeric" placeholder="r" style="width:70px" />)
+      </div>
+      <button class="btn" id="btn31">Check</button>
+    </div>
+    <div id="msg31" class="hint"></div>
+
+    <div class="row" style="gap:10px; margin-top:6px">
+      <div class="math" id="carryText">Carry remainder <b id="carryR">1</b> to ones <b id="onesVal">5</b> → <b id="combined">6</b></div>
+    </div>
+
+    <div class="row" style="gap:10px; margin-top:6px">
+      <div class="math">
+        <span id="combinedText">6</span> ÷ <span id="s3_d2">3</span> =
+        <input id="q2" type="number" inputmode="numeric" placeholder="q" style="width:84px"/>
+      </div>
+      <button class="btn" id="btn32">Check</button>
+    </div>
+    <div id="msg32" class="hint"></div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="panel" id="p4">
+    <div class="check todo" id="chk4">●</div>
+    <h2 id="s4_title">Step 4 · Put it all together</h2>
+    <div class="desc" id="s4_desc">Add the two quotients to get the final answer.</div>
+    <div class="row" style="gap:10px">
+      <div class="math">
+        <span id="showQ1">23</span> + <span id="showQ2">2</span> =
+        <input id="ans" type="number" inputmode="numeric" placeholder="answer" />
+      </div>
+      <button class="btn" id="btn4">Check</button>
+    </div>
+    <div id="msg4" class="hint"></div>
+  </section>
+
+  <!-- STEP 5 -->
+  <section class="panel" id="p5">
+    <div class="check todo" id="chk5">●</div>
+    <h2 id="s5_title">Step 5 · Explain it simply</h2>
+    <div class="desc" id="s5_desc">Complete the sentence.</div>
+    <div class="math" id="s5_sentence">
+      First divide the
+      <select id="selA">
+        <option value="">choose…</option>
+        <option>Tens</option>
+        <option>Ones</option>
+      </select>, carry what’s left, then divide the
+      <select id="selB">
+        <option value="">choose…</option>
+        <option>Tens</option>
+        <option>Ones</option>
+      </select>.
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn" id="btn5">Finish</button>
+      <div id="msg5" class="hint"></div>
+    </div>
+  </section>
+
+  <!-- Notes / Scratch -->
+  <section class="note">
+    <div class="row" style="justify-content:space-between; align-items:center">
+      <div class="mini" id="scratchTip">📝 Scratchpad — jot anything you like while you play</div>
+      <div class="mini" id="greenTip">✅ Green dot on a panel = step complete</div>
+    </div>
+    <textarea id="scratch" placeholder="Try long-division layout or jot hints…"></textarea>
+  </section>
+</main>
+
+<script>
+(function(){
+  const $ = s=>document.querySelector(s);
+  const $$ = s=>Array.from(document.querySelectorAll(s));
+  const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints>0;
+
+  /* ---------- i18n STRINGS ---------- */
+  const STR = {
+    en: {
+      title: "Division Steps Game",
+      subtitle: "Story → Break apart → Actual division → Put together → Explain simply",
+      lblLang: "Language", lblTheme:"Theme", lblDark:"Dark", lblSize:"Size", lblBig:"Bigger",
+      lblProblem:"Problem", lblScore:"Score",
+      s1_title:"Step 1 · Think in a story",
+      s1_desc:"You have <b>{a}</b> candies and <b>{d}</b> friends. Move tokens so each friend gets the same total.",
+      tapHint:"(Tap a token, then tap a basket on iPhone)",
+      s1_board_label:"🍬 Board (each token shows its candies)",
+      s1_baskets_label:"👥 Friend baskets — make them equal",
+      s2_title:"Step 2 · Break the number apart",
+      s2_desc:"Write dividend as tens + ones (e.g., 75 = 70 + 5).",
+      s3_title:"Step 3 · Do the actual division",
+      s3_desc:"Divide tens first. Carry the remainder to ones, then divide again.",
+      carryText:"Carry remainder <b>{r1}</b> to ones <b>{ones}</b> → <b>{combined}</b>",
+      s4_title:"Step 4 · Put it all together",
+      s4_desc:"Add the two quotients to get the final answer.",
+      s5_title:"Step 5 · Explain it simply",
+      s5_desc:"Complete the sentence.",
+      s5_sentence:`First divide the
+        <select id="selA"><option value="">choose…</option><option>Tens</option><option>Ones</option></select>,
+        carry what’s left, then divide the
+        <select id="selB"><option value="">choose…</option><option>Tens</option><option>Ones</option></select>.`,
+      scratchTip:"📝 Scratchpad — jot anything you like while you play",
+      greenTip:"✅ Green dot on a panel = step complete",
+      btnHint:"Hints", btnNew:"New Problem", btnCheck:"Check", btnFinish:"Finish", placeholderAnswer:"answer",
+      msg1_ok:"Perfect! Each friend has <b>{each}</b> candies.",
+      msg1_fix:"Not equal yet — adjust so each basket shows <b>{each}</b>.",
+      msg2_ok:"Great! {a} = {tens} + {ones}",
+      msg2_hint:"Hint: Tens = <b>{tens}</b>, Ones = <b>{ones}</b>.",
+      msg31_ok:"{tens} ÷ {d} = {q1} (r {r1})",
+      msg31_hint:"Recall: {d} × {q1} = {prod}; remainder = {tens} − {prod} = {r1}.",
+      msg32_ok:"{combined} ÷ {d} = {q2}",
+      msg32_hint:"Try: {r1} + {ones} = <b>{combined}</b>, then divide by {d}.",
+      msg4_ok:"Correct! {q1} + {q2} = <b>{ans}</b>.",
+      msg4_hint:"Add the quotients: <b>{q1}</b> and <b>{q2}</b>.",
+      msg5_ok:"Nice! First tens, carry remainder, then ones.",
+      msg5_hint:"Hint: Start with <b>Tens</b>, then divide the <b>Ones</b>."
+    },
+    kr: {
+      title:"나눗셈 스텝 학습 게임",
+      subtitle:"스토리 → 분해 → 실제 나눗셈 → 합치기 → 한 줄 설명",
+      lblLang:"언어", lblTheme:"테마", lblDark:"다크", lblSize:"크기", lblBig:"크게",
+      lblProblem:"문제", lblScore:"점수",
+      s1_title:"Step 1 · 이야기로 생각해보기",
+      s1_desc:"사탕이 <b>{a}</b>개 있고 친구가 <b>{d}</b>명 있어요. 토큰을 옮겨서 모두가 같은 개수를 갖도록 하세요.",
+      tapHint:"(아이폰: 토큰을 탭하고 바구니를 탭하세요)",
+      s1_board_label:"🍬 보드 (각 토큰은 들어있는 사탕 수를 보여요)",
+      s1_baskets_label:"👥 친구 바구니 — 공평하게 만들기",
+      s2_title:"Step 2 · 수를 분해하기",
+      s2_desc:"피제수를 십의 자리 + 일의 자리로 나타내요. (예: 75 = 70 + 5)",
+      s3_title:"Step 3 · 실제 나눗셈",
+      s3_desc:"십의 자리부터 나누고, 나머지를 일의 자리에 합쳐 다시 나눠요.",
+      carryText:"나머지 <b>{r1}</b>과 일의 자리 <b>{ones}</b>를 합쳐 <b>{combined}</b>",
+      s4_title:"Step 4 · 모두 합치기",
+      s4_desc:"앞에서 구한 몫을 더해 최종 답을 얻습니다.",
+      s5_title:"Step 5 · 한 줄로 설명하기",
+      s5_desc:"문장을 완성해 보세요.",
+      s5_sentence:`먼저
+        <select id="selA"><option value="">선택…</option><option>십의 자리</option><option>일의 자리</option></select>를 나누고,
+        남은 것을 내려와
+        <select id="selB"><option value="">선택…</option><option>십의 자리</option><option>일의 자리</option></select>를 나눈다.`,
+      scratchTip:"📝 메모판 — 자유롭게 적어 보세요",
+      greenTip:"✅ 패널의 초록 점 = 단계 완료",
+      btnHint:"힌트", btnNew:"새 문제", btnCheck:"확인", btnFinish:"완료", placeholderAnswer:"정답",
+      msg1_ok:"완벽해요! 각 친구가 <b>{each}</b>개씩 받았어요.",
+      msg1_fix:"아직 공평하지 않아요 — 각 바구니가 <b>{each}</b>개가 되도록 조정하세요.",
+      msg2_ok:"좋아요! {a} = {tens} + {ones}",
+      msg2_hint:"힌트: 십의 자리 = <b>{tens}</b>, 일의 자리 = <b>{ones}</b>.",
+      msg31_ok:"{tens} ÷ {d} = {q1} (나머지 {r1})",
+      msg31_hint:"기억해요: {d} × {q1} = {prod}; 나머지 = {tens} − {prod} = {r1}.",
+      msg32_ok:"{combined} ÷ {d} = {q2}",
+      msg32_hint:"{r1} + {ones} = <b>{combined}</b>이고, 그것을 {d}로 나눠요.",
+      msg4_ok:"정답! {q1} + {q2} = <b>{ans}</b>.",
+      msg4_hint:"앞의 몫 <b>{q1}</b>과 <b>{q2}</b>를 더해 보세요.",
+      msg5_ok:"좋아요! 먼저 십의 자리, 나머지를 내려와 일의 자리.",
+      msg5_hint:"힌트: <b>십의 자리</b>부터, 그다음 <b>일의 자리</b>."
+    }
+  };
+
+  /* ---------- Sounds & Confetti ---------- */
+  let actx;
+  function beep(kind='ok'){
+    try{
+      actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type='triangle'; o.frequency.value = kind==='ok' ? 920 : (kind==='warn'? 380 : 180);
+      g.gain.value = 0.0001; o.connect(g); g.connect(actx.destination); o.start();
+      const t0 = actx.currentTime;
+      g.gain.exponentialRampToValueAtTime(0.08, t0+0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0+0.22);
+      o.stop(t0+0.24);
+    }catch(e){}
+  }
+  const confettiCanvas=$("#confetti"), ctx=confettiCanvas.getContext("2d");
+  function size(){ confettiCanvas.width=innerWidth; confettiCanvas.height=innerHeight }
+  addEventListener('resize', size); size();
+  let conf=[];
+  function launch(n = innerWidth<500 ? 90 : 140){
+    conf = [];
+    for(let i=0;i<n;i++){
+      conf.push({x:Math.random()*innerWidth, y:-20-Math.random()*160, vx:-1+Math.random()*2, vy:2+Math.random()*3, r:2+Math.random()*4, a:Math.random()*Math.PI*2});
+    }
+  }
+  (function anim(){
+    ctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+    conf.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy; p.a+=0.05;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.a);
+      ctx.fillStyle=`hsl(${(p.x+p.y)%360},80%,60%)`;
+      ctx.fillRect(-p.r,-p.r,p.r*2,p.r*2);
+      ctx.restore();
+    });
+    conf = conf.filter(p=>p.y<innerHeight+40);
+    requestAnimationFrame(anim);
+  })();
+
+  /* ---------- Problem State ---------- */
+  const state = { a:75, d:3, tens:70, ones:5, q1:23, r1:1, q2:2, ans:25, combined:6, score:0 };
+  function computeParts(a,d){
+    const tens = Math.floor(a/10)*10, ones=a%10;
+    const q1 = Math.floor(tens/d), r1 = tens - q1*d;
+    const combined = r1 + ones;
+    const q2 = Math.floor(combined/d), ans = q1 + q2;
+    return {tens, ones, q1, r1, q2, ans, combined};
+  }
+
+  /* ---------- UI helpers ---------- */
+  function tset(el, html){ el.innerHTML = html; } // set innerHTML with markup placeholders
+  function setCheck(id, done){ const el=$(id); el.classList.toggle('done',done); el.classList.toggle('todo',!done); el.textContent='●'; }
+  function addScore(v){ state.score+=v; $("#hudScore").textContent=state.score; }
+  function fillTpl(s, map){ return s.replace(/\{(\w+)\}/g,(_,k)=> map[k]??''); }
+
+  /* ---------- Localization rendering ---------- */
+  let lang = localStorage.getItem('div_lang') || 'en';
+  let theme = localStorage.getItem('div_theme') || 'dark';
+  let sizePref = localStorage.getItem('div_size') || 'normal';
+
+  $("#lang").value = lang;
+  $("#themeToggle").checked = (theme==='dark');
+  document.documentElement.setAttribute('data-theme', theme);
+  $("#sizeToggle").checked = (sizePref==='big');
+  document.documentElement.setAttribute('data-size', sizePref);
+
+  function renderText(){
+    const S = STR[lang];
+    $("#title").textContent = S.title;
+    $("#subtitle").textContent = S.subtitle;
+    $("#lblLang").textContent = S.lblLang;
+    $("#lblTheme").textContent = S.lblTheme;
+    $("#lblDark").textContent = S.lblDark;
+    $("#lblSize").textContent = S.lblSize;
+    $("#lblBig").textContent = S.lblBig;
+    $("#lblProblem").textContent = S.lblProblem;
+    $("#lblScore").textContent = S.lblScore;
+    $("#btnHint").textContent = S.btnHint;
+    $("#btnNew").textContent = S.btnNew;
+
+    $("#s1_title").textContent = S.s1_title;
+    tset($("#s1_desc"), fillTpl(S.s1_desc, {a:state.a, d:state.d}));
+    $("#tapHint").textContent = S.tapHint;
+    $("#s1_board_label").textContent = S.s1_board_label;
+    $("#s1_baskets_label").textContent = S.s1_baskets_label;
+
+    $("#s2_title").textContent = S.s2_title;
+    $("#s2_desc").textContent = S.s2_desc;
+
+    $("#s3_title").textContent = S.s3_title;
+    $("#s3_desc").textContent = S.s3_desc;
+    tset($("#carryText"), fillTpl(S.carryText, {r1:state.r1, ones:state.ones, combined:state.combined}));
+
+    $("#s4_title").textContent = S.s4_title;
+    $("#s4_desc").textContent = S.s4_desc;
+
+    $("#s5_title").textContent = S.s5_title;
+    $("#s5_desc").textContent = S.s5_desc;
+    $("#s5_sentence").innerHTML = S.s5_sentence; // reinsert selects in chosen language
+    // reconnect selects after re-render
+    bindStep5Selects();
+
+    $("#scratchTip").textContent = S.scratchTip;
+    $("#greenTip").textContent = S.greenTip;
+
+    $("#ans").setAttribute('placeholder', S.placeholderAnswer);
+    // Buttons inside steps
+    $$("#btn2, #btn31, #btn32, #btn4").forEach(b=> b.textContent=S.btnCheck);
+    $("#btn5").textContent = S.btnFinish;
+
+    // HUD problem
+    $("#hudProblem").textContent = `${state.a} ÷ ${state.d}`;
+    // Step2 A value
+    $("#s2_A").textContent = state.a;
+  }
+
+  $("#lang").addEventListener('change', ()=>{
+    lang = $("#lang").value; localStorage.setItem('div_lang', lang);
+    renderText();
+  });
+  $("#themeToggle").addEventListener('change', ()=>{
+    theme = $("#themeToggle").checked ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('div_theme', theme);
+  });
+  $("#sizeToggle").addEventListener('change', ()=>{
+    sizePref = $("#sizeToggle").checked ? 'big' : 'normal';
+    document.documentElement.setAttribute('data-size', sizePref);
+    localStorage.setItem('div_size', sizePref);
+  });
+
+  /* ---------- Step 1: board & baskets (DnD + tap-to-move) ---------- */
+  const pool=$("#pool"), basketsWrap=$("#baskets"), msg1=$("#msg1");
+  function tokenEl(id, value){
+    const el = document.createElement('div');
+    el.className='token'; el.id=id; el.dataset.value=value;
+    el.innerHTML=`<span>🍬</span><small>x${value}</small>`;
+    if(!isTouch){ el.draggable = true; }
+    return el;
+  }
+  function buildBaskets(){
+    basketsWrap.innerHTML = "";
+    for(let i=0;i<state.d;i++){
+      const b = document.createElement('div');
+      b.className="basket drop-target";
+      b.innerHTML = `
+        <div class="face">${['🧒','👧','🧑','👦','👩','🧔','👱','👵','👴'][i%9]}</div>
+        <div class="count"><span data-count="0">0</span> ${lang==='en'?'candies':'개'}</div>
+        <div class="slot board" style="min-height:48px"></div>
+      `;
+      basketsWrap.appendChild(b);
+    }
+  }
+  function fillTokens(){
+    pool.innerHTML = "";
+    const n = Math.max(1, Math.round(state.a/5));
+    let sum=0;
+    for(let i=0;i<n;i++){
+      let val = (i===n-1)? (state.a - sum) : 5;
+      if(val<=0) continue;
+      sum += val;
+      pool.appendChild(tokenEl(`tok-${i}-${Date.now()}`, val));
+    }
+  }
+  function updateCounts(){
+    $$('#baskets .basket').forEach(b=>{
+      const sum = [...b.querySelectorAll('.slot .token')].reduce((s,t)=>s+(+t.dataset.value),0);
+      b.querySelector('[data-count]').textContent = sum;
+    });
+  }
+  function eachShouldGet(){ return state.a / state.d; }
+  function validateStep1(){
+    const S = STR[lang];
+    const sums = $$('#baskets .basket').map(b=>+b.querySelector('[data-count]').textContent);
+    const donePlacing = pool.querySelectorAll('.token').length===0;
+    const equal = sums.every(s=>s===sums[0]);
+    if(donePlacing && equal && sums[0]===eachShouldGet()){
+      tset(msg1, fillTpl(S.msg1_ok, {each: sums[0]}));
+      setCheck('#chk1', true); addScore(20); beep('ok'); launch();
+    }else if(donePlacing){
+      tset(msg1, fillTpl(S.msg1_fix, {each: eachShouldGet()}));
+      setCheck('#chk1', false); beep('warn');
+    }else{
+      msg1.textContent=''; setCheck('#chk1', false);
+    }
+  }
+
+  // desktop drag-and-drop
+  function enableDnD(){
+    if(isTouch) return;
+    const dropAreas = [pool, ...$$('.slot')];
+    dropAreas.forEach(area=>{
+      const box = area.closest('.drop-target') || area;
+      area.addEventListener('dragover', e=>{ e.preventDefault(); box.classList.add('over'); });
+      area.addEventListener('dragleave', ()=> box.classList.remove('over'));
+      area.addEventListener('drop', e=>{
+        e.preventDefault(); box.classList.remove('over');
+        const id = e.dataTransfer.getData('text/plain');
+        const token = document.getElementById(id);
+        if(!token) return;
+        area.appendChild(token);
+        updateCounts(); validateStep1();
+      });
+    });
+    $$('#pool .token').forEach(t=>{
+      t.addEventListener('dragstart', e=>{
+        e.dataTransfer.setData('text/plain', t.id);
+        setTimeout(()=>{ t.style.opacity=.5 },0);
+      });
+      t.addEventListener('dragend', ()=> t.style.opacity=1 );
+    });
+  }
+
+  // iPhone: tap-to-move
+  function enableTapToMove(){
+    if(!isTouch) return;
+    let picked=null;
+    function pick(el){
+      if(picked===el){ picked.classList.remove('picked'); picked=null; return; }
+      if(picked) picked.classList.remove('picked');
+      picked = el; el.classList.add('picked');
+    }
+    function dropInto(container){
+      if(!picked) return;
+      container.appendChild(picked);
+      picked.classList.remove('picked'); picked=null;
+      updateCounts(); validateStep1(); beep('ok');
+    }
+    const setTokenHandlers=()=> $$('.token').forEach(t=> t.onclick = ()=> pick(t));
+    [pool, ...$$('.slot')].forEach(zone=> zone.onclick = ()=> dropInto(zone));
+    setTokenHandlers();
+    const obs = new MutationObserver(()=> setTokenHandlers());
+    obs.observe(pool, {childList:true, subtree:true});
+  }
+
+  /* ---------- Step 2 ---------- */
+  const tensInp=$("#tens"), onesInp=$("#ones"), msg2=$("#msg2");
+  $("#btn2").addEventListener('click', ()=>{
+    const S = STR[lang];
+    const t=+tensInp.value, o=+onesInp.value;
+    if(t===state.tens && o===state.ones){
+      tset(msg2, fillTpl(S.msg2_ok, {a:state.a, tens:state.tens, ones:state.ones}));
+      setCheck('#chk2', true); addScore(15); beep('ok'); launch();
+      if(isTouch){ tensInp.blur(); onesInp.blur(); }
+    }else{
+      tset(msg2, fillTpl(S.msg2_hint, {tens:state.tens, ones:state.ones}));
+      setCheck('#chk2', false); beep('warn');
+    }
+  });
+
+  /* ---------- Step 3 ---------- */
+  const q1=$("#q1"), r1=$("#r1"), msg31=$("#msg31");
+  const q2=$("#q2"), msg32=$("#msg32");
+  $("#btn31").addEventListener('click', ()=>{
+    const S = STR[lang];
+    const a=+q1.value, b=+r1.value;
+    if(a===state.q1 && b===state.r1){
+      tset(msg31, fillTpl(S.msg31_ok, {tens:state.tens, d:state.d, q1:state.q1, r1:state.r1}));
+      beep('ok'); addScore(12); if(isTouch){ q1.blur(); r1.blur(); }
+    }else{
+      const prod = state.tens - state.r1;
+      tset(msg31, fillTpl(S.msg31_hint, {d:state.d, q1:state.q1, prod, tens:state.tens, r1:state.r1}));
+      beep('warn');
+    }
+    checkStep3Done();
+  });
+  $("#btn32").addEventListener('click', ()=>{
+    const S = STR[lang];
+    const a=+q2.value;
+    if(a===state.q2){
+      tset(msg32, fillTpl(S.msg32_ok, {combined:state.combined, d:state.d, q2:state.q2}));
+      beep('ok'); addScore(12); if(isTouch) q2.blur();
+    }else{
+      tset(msg32, fillTpl(S.msg32_hint, {r1:state.r1, ones:state.ones, combined:state.combined, d:state.d}));
+      beep('warn');
+    }
+    checkStep3Done();
+  });
+  function checkStep3Done(){
+    const ok = (+q1.value===state.q1 && +r1.value===state.r1 && +q2.value===state.q2);
+    setCheck('#chk3', ok);
+    if(ok) launch();
+  }
+
+  /* ---------- Step 4 ---------- */
+  const ans=$("#ans"), msg4=$("#msg4");
+  $("#btn4").addEventListener('click', ()=>{
+    const S = STR[lang];
+    const val = +ans.value;
+    if(val===state.ans){
+      tset(msg4, fillTpl(S.msg4_ok, {q1:state.q1, q2:state.q2, ans:state.ans}));
+      setCheck('#chk4', true); addScore(16); beep('ok'); launch(); if(isTouch) ans.blur();
+    }else{
+      tset(msg4, fillTpl(S.msg4_hint, {q1:state.q1, q2:state.q2}));
+      setCheck('#chk4', false); beep('warn');
+    }
+  });
+
+  /* ---------- Step 5 ---------- */
+  let selA=$("#selA"), selB=$("#selB"), msg5=$("#msg5");
+  function bindStep5Selects(){
+    selA = $("#selA"); selB = $("#selB");
+  }
+  $("#btn5").addEventListener('click', ()=>{
+    const S = STR[lang];
+    const ok = (lang==='en')
+      ? (selA.value==="Tens" && selB.value==="Ones")
+      : (selA.value==="십의 자리" && selB.value==="일의 자리");
+    if(ok){
+      msg5.innerHTML = S.msg5_ok;
+      setCheck('#chk5', true); addScore(15); beep('ok'); launch();
+    }else{
+      msg5.innerHTML = S.msg5_hint;
+      setCheck('#chk5', false); beep('warn');
+    }
+  });
+
+  /* ---------- Hints & New Problem ---------- */
+  $("#btnHint").addEventListener('click', ()=>{
+    const S = STR[lang];
+    tset($("#msg1"), fillTpl(S.msg1_fix, {each: eachShouldGet()}));
+    tset($("#msg2"), fillTpl(S.msg2_ok, {a:state.a, tens:state.tens, ones:state.ones}));
+    tset($("#msg31"), fillTpl(S.msg31_ok, {tens:state.tens, d:state.d, q1:state.q1, r1:state.r1}));
+    tset($("#msg32"), fillTpl(S.msg32_ok, {combined:state.combined, d:state.d, q2:state.q2}));
+    tset($("#msg4"), fillTpl(S.msg4_ok, {q1:state.q1, q2:state.q2, ans:state.ans}));
+    $("#msg5").innerHTML = S.msg5_hint;
+    beep('warn');
+  });
+
+  $("#btnNew").addEventListener('click', ()=>{
+    makeRandomProblem(); initAll(); beep('ok');
+    if(innerWidth<500) document.getElementById('p1').scrollIntoView({behavior:'smooth', block:'start'});
+  });
+
+  function makeRandomProblem(){
+    let a,d,parts;
+    while(true){
+      a = 30 + Math.floor(Math.random()*69); // 30..98
+      d = 2 + Math.floor(Math.random()*4);   // 2..5
+      if(a<d) continue;
+      parts = computeParts(a,d);
+      if((parts.r1 + parts.ones) >= d) break; // ensure meaningful carry
+    }
+    Object.assign(state, {a,d}, parts, {score:0});
+  }
+
+  /* ---------- Init ---------- */
+  function eachShouldGet(){ return state.a / state.d; }
+  const poolEl=$("#pool");
+  function enableAllDropTargets(){ [poolEl, ...$$('.slot')].forEach(el=>el.classList.add('drop-target')); }
+
+  function initAll(){
+    // HUD
+    $("#hudProblem").textContent = `${state.a} ÷ ${state.d}`;
+    $("#hudScore").textContent = state.score;
+
+    // Step 1
+    $("#s1_candies").textContent = state.a; $("#s1_friends").textContent = state.d;
+    buildBaskets(); fillTokens(); enableAllDropTargets();
+    enableDnD(); enableTapToMove();
+    $("#msg1").textContent=""; setCheck('#chk1', false);
+
+    // Step 2
+    $("#s2_A").textContent = state.a;
+    $("#tens").value=""; $("#ones").value=""; $("#msg2").textContent=""; setCheck('#chk2', false);
+
+    // Step 3
+    $("#s3_tens").textContent = state.tens; $("#s3_d1").textContent = state.d;
+    $("#carryR").textContent = state.r1; $("#onesVal").textContent = state.ones;
+    $("#combined").textContent = state.combined; $("#combinedText").textContent = state.combined; $("#s3_d2").textContent = state.d;
+    $("#q1").value=""; $("#r1").value=""; $("#q2").value=""; $("#msg31").textContent=""; $("#msg32").textContent=""; setCheck('#chk3', false);
+
+    // Step 4
+    $("#showQ1").textContent = state.q1; $("#showQ2").textContent = state.q2;
+    $("#ans").value=""; $("#msg4").textContent=""; setCheck('#chk4', false);
+
+    // Step 5
+    $("#msg5").textContent=""; setCheck('#chk5', false);
+
+    renderText(); // update all labels in current language
+  }
+
+  Object.assign(state, computeParts(75,3));
+  initAll();
+
+})();
+</script>
+</body>
+</html>
